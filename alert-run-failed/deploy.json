@@ -10,7 +10,8 @@
         }
     },
     "variables": {
-        "Plan Name": "consumption-plan"
+        "Plan Name": "consumption-plan",
+        "Site Name": "myfunction"
     },
     "resources": [
         {
@@ -36,6 +37,14 @@
                 "Tier": "Dynamic",
                 "Name": "Y1"
             },
+            "properties": {
+            }
+        },
+        {
+            "type": "microsoft.insights/components",
+            "apiVersion": "2015-05-01",
+            "name": "my-insights",
+            "location": "[resourceGroup().location]",
             "properties": {
             }
         }
