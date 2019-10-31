@@ -1,0 +1,43 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storageAccountName": {
+            "type": "String",
+            "metadata": {
+                "description": "Name of storage account"
+            }
+        }
+    },
+    "variables": {
+        "Plan Name": "consumption-plan"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "properties": {
+                "supportsHttpsTrafficOnly": true
+            }
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2019-08-01",
+            "name": "[variables('Plan Name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+            ],
+            "sku": {
+                "Tier": "Dynamic",
+                "Name": "Y1"
+            },
+            "properties": {
+            }
+        }
+    ]
+}
