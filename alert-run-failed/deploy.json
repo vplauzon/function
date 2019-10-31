@@ -96,7 +96,33 @@
                 },
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('Plan Name'))]",
                 "clientAffinityEnabled": true
-            }
+            },
+            "resources": [
+                {
+                    "type": "functions",
+                    "apiVersion": "2019-08-01",
+                    "name": "recurrent-function",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+                    ],
+                    "properties": {
+                        "config": {
+                            "bindings": [
+                                {
+                                    "name": "myTimer",
+                                    "type": "timerTrigger",
+                                    "direction": "in",
+                                    "schedule": "0 */1 * * * *"
+                                }
+                            ]
+                        },
+                        "files": {
+                            "run.csx": "using System;\r\n\r\npublic static void Run(TimerInfo myTimer, ILogger log)\r\n{\r\n    var isSuccess = (new Random().NextDouble()) < .5;\r\n\r\n    log.LogInformation($\"C# Timer trigger function executed at: {DateTime.Now}\");\r\n\r\n    if(isSuccess)\r\n    {\r\n        log.LogInformation($\"Success\");\r\n    }\r\n    else\r\n    {\r\n        log.LogInformation($\"Failure\");\r\n\r\n        throw new ApplicationException(\"Failure\");\r\n    }\r\n}"
+                        },
+                        "isDisabled": false
+                    }
+                }
+            ]
         }
     ]
 }
