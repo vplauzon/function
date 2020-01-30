@@ -4,4 +4,4 @@ This code is the starter for alerts.  It sets up a recurring function failing %5
 
 [![Deploy button](http://azuredeploy.net/deploybutton.png)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fvplauzon%2Ffunction%2Fmaster%2Falert-run-failed%2Fdeploy.json)
 
-See the [following article](TODO) for details.
+See the [following article](https://vincentlauzon.com/2019/11/01/alerts-on-azure-function-failures/) for details.
