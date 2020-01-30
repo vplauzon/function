@@ -87,7 +87,8 @@
             "location": "[resourceGroup().location]",
             "kind": "functionapp",
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('Storage Account name'))]"
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('Storage Account name'))]",
+                "[resourceId('Microsoft.Web/sites', variables('Function App B name'))]"
             ],
             "properties": {
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('App Plan Name'))]",
@@ -120,6 +121,10 @@
                         {
                             "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
                             "value": "~2"
+                        },
+                        {
+                            "name": "target-url",
+                            "value": "[listSecrets(resourceId('Microsoft.Web/sites/functions', variables('Function App B name'), variables('Function B name')), '2019-08-01').trigger_url]"
                         }
                     ]
                 }
@@ -152,6 +157,7 @@
                             ]
                         },
                         "files": {
+                            "run.csx": "#r \"System.Text.Json\"\n\nusing System;\nusing System.Linq;\nusing System.Net;\nusing System.Net.Http;\nusing System.Text.Json;\nusing System.Threading.Tasks;\nusing Microsoft.AspNetCore.Mvc;\nusing Microsoft.Extensions.Primitives;\n\n//  Using https://codebeautify.org/csharp-escape-unescape/ to compress\n//  into a one-liner for ARM Template\n//  Post process:  need to replace \\' by ' as it fails in ARM Templates\npublic static async Task<IActionResult> Run(\n    HttpRequest request,\n    ILogger log)\n{\n    log.LogInformation(\"Function A triggered\");\n\n    var targetUrl = Environment.GetEnvironmentVariable(\"target-url\");\n\n    if (string.IsNullOrWhiteSpace(targetUrl))\n    {\n        throw new ArgumentNullException(\"target-url\");\n    }\n\n    var client = new HttpClient();\n\n    //  Send events to Event Grid Topic\n    var response = await client.GetAsync(targetUrl);\n\n    if (response.StatusCode != HttpStatusCode.OK)\n    {\n        var output = await response.Content.ReadAsStringAsync();\n\n        return new BadRequestObjectResult($\"Error calling function B:  {output}\");\n    }\n    else\n    {\n        var output = await response.Content.ReadAsStringAsync();\n\n        log.LogInformation($\"Function B returned {output}\");\n\n        return new OkObjectResult($\"Function B returned {output}\");\n    }\n}"
                         },
                         "isDisabled": false
                     }
@@ -230,6 +236,7 @@
                             ]
                         },
                         "files": {
+                            "run.csx": "#r \"System.Text.Json\"\n\nusing System;\nusing System.Linq;\nusing System.Net;\nusing System.Net.Http;\nusing System.Text.Json;\nusing System.Threading.Tasks;\nusing Microsoft.AspNetCore.Mvc;\nusing Microsoft.Extensions.Primitives;\n\n//  Using https://codebeautify.org/csharp-escape-unescape/ to compress\n//  into a one-liner for ARM Template\n//  Post process:  need to replace \\' by ' as it fails in ARM Templates\npublic static async Task<IActionResult> Run(\n    HttpRequest request,\n    ILogger log)\n{\n    log.LogInformation(\"Function B triggered\");\n\n    var client = new HttpClient();\n    \n    return new OkObjectResult($\"42\");\n}"
                         },
                         "isDisabled": false
                     }
