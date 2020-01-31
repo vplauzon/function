@@ -184,16 +184,17 @@
                     }
                 },
                 {
-                    "type": "virtualNetworkConnections",
-                    "apiVersion": "2018-11-01",
-                    "name": "[variables('VNET name')]",
+                    "name": "virtualNetwork",
+                    "type": "config",
+                    "apiVersion": "2018-02-01",
                     "location": "[resourceGroup().location]",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', variables('Function App A name'))]"
+                        "[resourceId('Microsoft.Web/sites', variables('Function App A name'))]",
+                        "[resourceId('Microsoft.Network/virtualNetworks/', variables('VNET name'))]"
                     ],
                     "properties": {
-                        "vnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNET name'), variables('Subnet name'))]",
-                        "isSwift": true
+                        "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNET name'), variables('Subnet name'))]",
+                        "swiftSupported": true
                     }
                 }
             ]
