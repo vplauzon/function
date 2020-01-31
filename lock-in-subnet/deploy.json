@@ -1,12 +1,14 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
     },
     "variables": {
         "VNET name": "vnet",
-        "App Plan Name": "app-plan",
+        "Subnet name": "default",
         "Storage Account name": "[concat('funcsto', uniqueString(resourceGroup().id))]",
+        "App Plan A Name": "app-plan-a",
+        "App Plan B Name": "app-plan-b",
         "Function App A name": "[concat('function-app-a-', uniqueString(resourceGroup().id))]",
         "Function A name": "function-a",
         "Function App B name": "[concat('function-app-b-', uniqueString(resourceGroup().id))]",
@@ -26,7 +28,7 @@
                 },
                 "subnets": [
                     {
-                        "name": "default",
+                        "name": "[variables('Subnet name')]",
                         "properties": {
                             "addressPrefix": "10.0.0.0/24",
                             "serviceEndpoints": [
@@ -53,21 +55,6 @@
             }
         },
         {
-            "type": "Microsoft.Web/serverfarms",
-            "apiVersion": "2019-08-01",
-            "name": "[variables('App Plan Name')]",
-            "location": "[resourceGroup().location]",
-            "sku": {
-                "name": "Y1",
-                "tier": "Dynamic"
-            },
-            "properties": {
-                "name": "[variables('App Plan Name')]",
-                "computeMode": "Dynamic"
-            },
-            "kind": "linux"
-        },
-        {
             "apiVersion": "2019-04-01",
             "type": "Microsoft.Storage/storageAccounts",
             "name": "[variables('Storage Account name')]",
@@ -81,6 +68,39 @@
             }
         },
         {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2019-08-01",
+            "name": "[variables('App Plan A Name')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "S1",
+                "tier": "Standard",
+                "size": "S1",
+                "family": "S",
+                "capacity": 1
+            },
+            "properties": {
+                "name": "[variables('App Plan A Name')]",
+                "computeMode": "Dynamic"
+            },
+            "kind": "linux"
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2019-08-01",
+            "name": "[variables('App Plan B Name')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Y1",
+                "tier": "Dynamic"
+            },
+            "properties": {
+                "name": "[variables('App Plan B Name')]",
+                "computeMode": "Dynamic"
+            },
+            "kind": "linux"
+        },
+        {
             "apiVersion": "2019-08-01",
             "type": "Microsoft.Web/sites",
             "name": "[variables('Function App A name')]",
@@ -88,10 +108,11 @@
             "kind": "functionapp",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('Storage Account name'))]",
-                "[resourceId('Microsoft.Web/sites', variables('Function App B name'))]"
+                "[resourceId('Microsoft.Web/sites/functions', variables('Function App B name'), variables('Function B name'))]",
+                "[resourceId('Microsoft.Web/serverfarms', variables('App Plan A Name'))]"
             ],
             "properties": {
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('App Plan Name'))]",
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('App Plan A Name'))]",
                 "siteConfig": {
                     "appSettings": [
                         {
@@ -161,6 +182,19 @@
                         },
                         "isDisabled": false
                     }
+                },
+                {
+                    "type": "virtualNetworkConnections",
+                    "apiVersion": "2018-11-01",
+                    "name": "[variables('VNET name')]",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', variables('Function App A name'))]"
+                    ],
+                    "properties": {
+                        "vnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNET name'), variables('Subnet name'))]",
+                        "isSwift": true
+                    }
                 }
             ]
         },
@@ -171,10 +205,11 @@
             "location": "[resourceGroup().location]",
             "kind": "functionapp",
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('Storage Account name'))]"
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('Storage Account name'))]",
+                "[resourceId('Microsoft.Web/serverfarms', variables('App Plan B Name'))]"
             ],
             "properties": {
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('App Plan Name'))]",
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('App Plan B Name'))]",
                 "siteConfig": {
                     "appSettings": [
                         {
@@ -239,6 +274,27 @@
                             "run.csx": "#r \"System.Text.Json\"\n\nusing System;\nusing System.Linq;\nusing System.Net;\nusing System.Net.Http;\nusing System.Text.Json;\nusing System.Threading.Tasks;\nusing Microsoft.AspNetCore.Mvc;\nusing Microsoft.Extensions.Primitives;\n\n//  Using https://codebeautify.org/csharp-escape-unescape/ to compress\n//  into a one-liner for ARM Template\n//  Post process:  need to replace \\' by ' as it fails in ARM Templates\npublic static async Task<IActionResult> Run(\n    HttpRequest request,\n    ILogger log)\n{\n    log.LogInformation(\"Function B triggered\");\n\n    var client = new HttpClient();\n    \n    return new OkObjectResult($\"42\");\n}"
                         },
                         "isDisabled": false
+                    }
+                },
+                {
+                    "type": "config",
+                    "apiVersion": "2018-11-01",
+                    "name": "web",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', variables('Function App B name'))]"
+                    ],
+                    "properties": {
+                        "ipSecurityRestrictions": [
+                            {
+                                "vnetSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNET name'), variables('Subnet name'))]",
+                                "action": "Allow",
+                                "tag": "Default",
+                                "priority": 100,
+                                "name": "lock-to-subnet",
+                                "description": "Locking from subnet"
+                            }
+                        ]
                     }
                 }
             ]
