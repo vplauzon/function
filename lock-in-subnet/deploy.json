@@ -33,17 +33,17 @@
                             "addressPrefix": "10.0.0.0/24",
                             "serviceEndpoints": [
                                 {
-                                    "service": "Microsoft.Web",
-                                    "locations": [
-                                        "*"
-                                    ]
+                                    "service": "Microsoft.Web"
                                 }
                             ],
                             "delegations": [
                                 {
                                     "name": "delegation",
                                     "properties": {
-                                        "serviceName": "Microsoft.Web/serverfarms"
+                                        "serviceName": "Microsoft.Web/serverfarms",
+                                        "actions": [
+                                            "Microsoft.Network/virtualNetworks/subnets/action"
+                                        ]
                                     }
                                 }
                             ],
@@ -167,7 +167,8 @@
                                     "type": "httpTrigger",
                                     "direction": "in",
                                     "methods": [
-                                        "get"
+                                        "get",
+                                        "post"
                                     ]
                                 },
                                 {
@@ -261,7 +262,8 @@
                                     "type": "httpTrigger",
                                     "direction": "in",
                                     "methods": [
-                                        "get"
+                                        "get",
+                                        "post"
                                     ]
                                 },
                                 {
